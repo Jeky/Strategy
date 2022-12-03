@@ -1,20 +1,74 @@
-from typing import Callable
+from typing import Callable, Generic, TypeVar, Tuple
+
+T = TypeVar("T")
 
 
-class Rule(object):
+class Rule(Generic[T]):
 
-    def __init__(self, probability: float, operator: Callable[[float], float]):
-        self.probability = probability
+    def __init__(self, priority: int):
+        self.priority = priority
+
+    def accept(self, luck: float, step: T) -> bool:
+        return False
+
+    def apply(self, step: T) -> T:
+        return step
+
+
+class TerminateRule(Rule):
+
+    def __init__(self):
+        super().__init__(-1)
+
+    def accept(self, luck: float, step: T) -> bool:
+        return True
+
+
+class ProbabilityRule(Rule):
+
+    def __init__(self, luck_range: Tuple[float], operator: Callable[[T], T]):
+        super().__init__(int(luck_range[0] * 100))
+        self.luck_range = luck_range
         self.operator = operator
 
+    def accept(self, luck: float, step: T) -> bool:
+        if step is None:
+            return False
 
-class SimpleAddRule(Rule):
+        return self.luck_range[0] <= luck < self.luck_range[1]
 
-    def __init__(self, probability: float, to_add: float):
-        super().__init__(probability, lambda x: x + to_add)
+    def apply(self, step: T) -> T:
+        return self.operator(step)
+
+    def __str__(self):
+        return ""
 
 
-class SimpleSubRule(Rule):
+class SimpleAddRule(ProbabilityRule):
 
-    def __init__(self, probability: float, to_sub: float):
-        super().__init__(probability, lambda x: x - to_sub)
+    def __init__(self, luck_range: Tuple[float], to_add: float):
+        super().__init__(luck_range, lambda x: x + to_add)
+
+
+class SimpleSubRule(ProbabilityRule):
+
+    def __init__(self, luck_range: Tuple[float], to_sub: float):
+        super().__init__(luck_range, lambda x: x - to_sub)
+
+
+class ProbabilityRuleGenerator(Generic[T]):
+
+    def __init__(self):
+        self.start = 0.0
+        self.rules = []
+
+    def new_rule(self, rule_class: type(ProbabilityRule), probability: float, *args):
+        if self.start + probability > 1:
+            raise ValueError(f"probability is too large. Max probability could be {1 - self.start}")
+
+        luck_range = [self.start, self.start + probability]
+        self.start += probability
+        self.rules.append(rule_class(luck_range, *args))
+
+    def __iter__(self):
+        return self.rules.__iter__()
