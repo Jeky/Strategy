@@ -19,6 +19,7 @@ class Simulator(object):
             self.random_generator = random_generator
         else:
             self.random_generator = Random()
+        self.simulate_count = 0
 
     def simulate(self):
         last_step = self.result
@@ -26,8 +27,8 @@ class Simulator(object):
 
         for rule in self.rules:
             if rule.accept(luck, last_step):
-                new_step = rule.apply(last_step)
-                self.update_step(new_step)
+                self.step = rule.apply(last_step)
+                self.simulate_count += 1
                 return
 
         raise NoRuleFoundError(f"no rule found for luck = {luck}, step = {last_step}")
@@ -35,6 +36,3 @@ class Simulator(object):
     @property
     def result(self):
         return self.step
-
-    def update_step(self, new_step: T):
-        self.step = new_step

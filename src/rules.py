@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Callable, Generic, TypeVar, Tuple
 
 T = TypeVar("T")
@@ -17,11 +18,12 @@ class Rule(Generic[T]):
 
 class TerminateRule(Rule):
 
-    def __init__(self):
+    def __init__(self, criteria: Callable[[float, T], bool]):
         super().__init__(-1)
+        self.criteria = criteria
 
     def accept(self, luck: float, step: T) -> bool:
-        return True
+        return self.criteria(luck, step)
 
 
 class ProbabilityRule(Rule):
@@ -62,13 +64,15 @@ class ProbabilityRuleGenerator(Generic[T]):
         self.start = 0.0
         self.rules = []
 
-    def new_rule(self, rule_class: type(ProbabilityRule), probability: float, *args):
+    def new_rule(self, rule_class: type(ProbabilityRule), probability: float, *args) -> ProbabilityRuleGenerator:
         if self.start + probability > 1:
             raise ValueError(f"probability is too large. Max probability could be {1 - self.start}")
 
         luck_range = [self.start, self.start + probability]
         self.start += probability
         self.rules.append(rule_class(luck_range, *args))
+
+        return self
 
     def __iter__(self):
         return self.rules.__iter__()
