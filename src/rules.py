@@ -25,6 +25,9 @@ class TerminateRule(Rule):
     def accept(self, luck: float, step: T) -> bool:
         return self.criteria(luck, step)
 
+    def apply(self, step: T) -> T:
+        return 0
+
 
 class ProbabilityRule(Rule):
 

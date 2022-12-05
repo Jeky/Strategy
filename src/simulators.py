@@ -13,7 +13,7 @@ class NoRuleFoundError(Exception):
 class Simulator(object):
 
     def __init__(self, init_step: T, rules: Iterable[Rule[T]], random_generator: Random = None):
-        self.step = init_step
+        self.steps = [init_step]
         self.rules = sorted(rules, key=lambda r: r.priority)
         if random_generator:
             self.random_generator = random_generator
@@ -27,7 +27,9 @@ class Simulator(object):
 
         for rule in self.rules:
             if rule.accept(luck, last_step):
-                self.step = rule.apply(last_step)
+                new_step = rule.apply(last_step)
+                if new_step is not None:
+                    self.steps.append(new_step)
                 self.simulate_count += 1
                 return
 
@@ -35,4 +37,4 @@ class Simulator(object):
 
     @property
     def result(self):
-        return self.step
+        return self.steps[-1]
